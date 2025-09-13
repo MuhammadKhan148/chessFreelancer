@@ -1,5 +1,5 @@
 import pygame as p
-from chessEngine import GameState
+from chessEngine import GameState, Move
 
 Width = Height = 512
 Dimension = 8
@@ -23,6 +23,7 @@ def main():
     running = True
     sqSelected = ()
     playerClicks = []
+    validMoves = gs.getValidMoves()
     while running:
         for e in p.event.get():
             if e.type == p.QUIT:
@@ -41,20 +42,23 @@ def main():
                 sqSelected = (row, col)
                 
                 if len(playerClicks) == 2:
-                    move = GameState.Move(playerClicks[0],playerClicks[1], gs.board)
-                    print(move.getChessNotation())
-                    makeMove(move)
+                    move = Move(playerClicks[0],playerClicks[1], gs.board)
+                    # only make move if legal
+                    if move in validMoves:
+                        gs.makeMove(move)
+                        validMoves = gs.getValidMoves()
+                        print(move.getChessNotation())
                     sqSelected = ()
                     playerClicks = []
                 
         
-        drawGameState(screen, gs)        
+        drawGameState(screen, gs, sqSelected, validMoves)        
         clock.tick(MAX_FPS)
         p.display.flip()
 
-def drawGameState(screen, gs):
+def drawGameState(screen, gs, sqSelected, validMoves):
     drawBoard(screen)#draw squares on the board
-    #add in piece highlighting or move suggestions
+    drawHighlights(screen, sqSelected, validMoves)
     drawPieces(screen, gs.board) # draw the pieces take from images files on top of the squares being draws.
 #Draw squares on the boards
 def drawBoard(screen):
@@ -71,6 +75,21 @@ def drawPieces(screen, board):
             piece = board[r][c]
             if piece != "--":
                 screen.blit(IMAGES[piece], p.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
+
+def drawHighlights(screen, sqSelected, validMoves):
+    if sqSelected == ():
+        return
+    r, c = sqSelected
+    # highlight selected square
+    s = p.Surface((SQ_SIZE, SQ_SIZE))
+    s.set_alpha(100)
+    s.fill(p.Color('yellow'))
+    screen.blit(s, (c*SQ_SIZE, r*SQ_SIZE))
+    # highlight legal moves for that square
+    for m in validMoves:
+        if (m.startRow, m.startCol) == (r, c):
+            center = (m.endCol*SQ_SIZE + SQ_SIZE//2, m.endRow*SQ_SIZE + SQ_SIZE//2)
+            p.draw.circle(screen, p.Color('red'), center, SQ_SIZE//8)
                 
 
         
